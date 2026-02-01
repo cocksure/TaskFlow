@@ -8,6 +8,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-b)e)q!z9_7uui3h7h4fvd
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS.append('tasksflow.pythonanywhere.com')
 
 # Fly.io host
 if os.environ.get('FLY_APP_NAME'):
