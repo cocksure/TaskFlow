@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard - TaskFlow{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+	<div class="dashboard-container">
+
+		<!-- Stats Cards -->
+		<div class="row g-4 mb-4">
+			<div class="col-6 col-md-3">
+				<div class="stat-card">
+					<div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+						<i class="bi bi-list-task"></i>
+					</div>
+					<div class="stat-info">
+						<span class="stat-value">{{ total_tasks }}</span>
+						<span class="stat-label">Всего задач</span>
+					</div>
+				</div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="stat-card">
+					<div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">
+						<i class="bi bi-person"></i>
+					</div>
+					<div class="stat-info">
+						<span class="stat-value">{{ my_tasks }}</span>
+						<span class="stat-label">Мои задачи</span>
+					</div>
+				</div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="stat-card">
+					<div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+						<i class="bi bi-exclamation-triangle"></i>
+					</div>
+					<div class="stat-info">
+						<span class="stat-value">{{ overdue_tasks }}</span>
+						<span class="stat-label">Просрочено</span>
+					</div>
+				</div>
+			</div>
+			<div class="col-6 col-md-3">
+				<div class="stat-card">
+					<div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #22c55e);">
+						<i class="bi bi-folder"></i>
+					</div>
+					<div class="stat-info">
+						<span class="stat-value">{{ projects|length }}</span>
+						<span class="stat-label">Проектов</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Charts Row -->
+		<div class="row g-4 mb-4">
+			<!-- Priority Chart -->
+			<div class="col-md-6">
+				<div class="dashboard-card">
+					<h5 class="card-title mb-3">
+						<i class="bi bi-pie-chart me-2"></i>По приоритетам
+					</h5>
+					<div class="chart-container">
+						<canvas id="priorityChart"></canvas>
+					</div>
+				</div>
+			</div>
+
+			<!-- Tasks by Day Chart -->
+			<div class="col-md-6">
+				<div class="dashboard-card">
+					<h5 class="card-title mb-3">
+						<i class="bi bi-graph-up me-2"></i>Создано за неделю
+					</h5>
+					<div class="chart-container">
+						<canvas id="weekChart"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Projects & Recent Activity -->
+		<div class="row g-4">
+			<!-- Projects Progress -->
+			<div class="col-md-7">
+				<div class="dashboard-card">
+					<h5 class="card-title mb-3">
+						<i class="bi bi-kanban me-2"></i>Проекты
+					</h5>
+					{% for project in projects %}
+						<div class="project-row">
+							<div class="d-flex justify-content-between align-items-center mb-2">
+								<a href="{% url 'project_board' project.slug %}" class="project-name">
+									{{ project.name }}
+								</a>
+								<span class="text-muted small">{{ project.task_count }} задач</span>
+							</div>
+							<div class="d-flex gap-1">
+								{% for col in project.columns_stats %}
+									{% if col.count > 0 %}
+										<div class="column-bar"
+										     style="flex: {{ col.count }}; background: {{ col.color }};"
+										     title="{{ col.name }}: {{ col.count }}">
+										</div>
+									{% endif %}
+								{% endfor %}
+							</div>
+							<div class="d-flex gap-3 mt-1">
+								{% for col in project.columns_stats %}
+									<small class="text-muted">
+										<span class="status-dot-sm" style="background: {{ col.color }};"></span>
+										{{ col.name }}: {{ col.count }}
+									</small>
+								{% endfor %}
+							</div>
+						</div>
+					{% empty %}
+						<p class="text-muted text-center py-4">Нет проектов</p>
+					{% endfor %}
+				</div>
+			</div>
+
+			<!-- Recent Chat Messages -->
+			<div class="col-md-5">
+				<div class="dashboard-card">
+					<h5 class="card-title mb-3">
+						<i class="bi bi-chat-dots me-2"></i>Последние сообщения
+					</h5>
+					<div class="messages-list">
+						{% for msg in recent_messages %}
+							<div class="message-item">
+								<div class="d-flex justify-content-between align-items-start">
+									<strong class="small">{{ msg.user.username }}</strong>
+									<small class="text-muted">{{ msg.created_at|timesince }} назад</small>
+								</div>
+								<p class="mb-1 small">{{ msg.text|truncatewords:10 }}</p>
+								<a href="{% url 'project_board' msg.task.project.slug %}" class="text-muted small">
+									<i class="bi bi-link-45deg"></i>{{ msg.task.title|truncatewords:5 }}
+								</a>
+							</div>
+						{% empty %}
+							<p class="text-muted text-center py-4">Нет сообщений</p>
+						{% endfor %}
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Chart.js -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+            new Chart(priorityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Низкий', 'Средний', 'Высокий', 'Срочный'],
+                    datasets: [{
+                        data: [
+                            {{ priority_data.low|default:0 }},
+                            {{ priority_data.medium|default:0 }},
+                            {{ priority_data.high|default:0 }},
+                            {{ priority_data.urgent|default:0 }}
+                        ],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                color: getComputedStyle(document.body).getPropertyValue('--tf-text')
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Week Chart
+            const weekCtx = document.getElementById('weekChart').getContext('2d');
+            new Chart(weekCtx, {
+                type: 'bar',
+                data: {
+                    labels: [{% for day in tasks_by_day %}'{{ day.date }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    datasets: [{
+                        label: 'Создано задач',
+                        data: [{% for day in tasks_by_day %}{{ day.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {display: false}
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {stepSize: 1}
+                        }
+                    }
+                }
+            });
+        });
+	</script>
+
+	<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}

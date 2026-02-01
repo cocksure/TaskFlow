@@ -1,0 +1,22 @@
+<div class="checklist-item d-flex align-items-center gap-2 py-2 {% if item.is_completed %}completed{% endif %}"
+     id="checklist-item-{{ item.id }}">
+    <button class="btn btn-sm p-0 checklist-toggle"
+            hx-post="{% url 'checklist_toggle' item.id %}"
+            hx-target="#checklist-item-{{ item.id }}"
+            hx-swap="outerHTML">
+        {% if item.is_completed %}
+            <i class="bi bi-check-circle-fill text-success"></i>
+        {% else %}
+            <i class="bi bi-circle text-muted"></i>
+        {% endif %}
+    </button>
+    <span class="flex-grow-1 {% if item.is_completed %}text-decoration-line-through text-muted{% endif %}">
+        {{ item.text }}
+    </span>
+    <button class="btn btn-sm p-0 text-muted checklist-delete"
+            hx-post="{% url 'checklist_delete' item.id %}"
+            hx-target="#checklist-item-{{ item.id }}"
+            hx-swap="outerHTML">
+        <i class="bi bi-x-lg"></i>
+    </button>
+</div>

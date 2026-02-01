@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Проекты - TaskFlow{% endblock %}
+
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+	<link rel="stylesheet" href="{% static 'css/home.css' %}">
+
+	<div class="home-container">
+		{% if projects %}
+			<div class="row g-4">
+				{% for project in projects %}
+					<div class="col-12 col-sm-6 col-lg-4 col-xl-3 fade-in"
+					     style="animation-delay: {{ forloop.counter0 }}00ms">
+						<a href="{% url 'project_board' project.slug %}" class="project-card">
+							<div class="project-icon project-icon-{{ project.color }}">
+								{% if project.icon == 'folder' %}<i class="bi bi-folder-fill"></i>
+								{% elif project.icon == 'briefcase' %}<i class="bi bi-briefcase-fill"></i>
+								{% elif project.icon == 'rocket' %}<i class="bi bi-rocket-takeoff-fill"></i>
+								{% elif project.icon == 'star' %}<i class="bi bi-star-fill"></i>
+								{% elif project.icon == 'heart' %}<i class="bi bi-heart-fill"></i>
+								{% elif project.icon == 'lightning' %}<i class="bi bi-lightning-fill"></i>
+								{% elif project.icon == 'gear' %}<i class="bi bi-gear-fill"></i>
+								{% elif project.icon == 'code' %}<i class="bi bi-code-slash"></i>
+								{% elif project.icon == 'palette' %}<i class="bi bi-palette-fill"></i>
+								{% elif project.icon == 'music' %}<i class="bi bi-music-note-beamed"></i>
+								{% elif project.icon == 'camera' %}<i class="bi bi-camera-fill"></i>
+								{% elif project.icon == 'book' %}<i class="bi bi-book-fill"></i>
+								{% else %}<i class="bi bi-folder-fill"></i>
+								{% endif %}
+							</div>
+							<h3 class="h5 fw-semibold mb-2">{{ project.name }}</h3>
+							<div class="d-flex align-items-center gap-3 text-muted small">
+								<span><i class="bi bi-list-task me-1"></i>{{ project.tasks.count }} задач</span>
+								<span><i class="bi bi-calendar3 me-1"></i>{{ project.created_at|date:"d M" }}</span>
+							</div>
+						</a>
+					</div>
+				{% endfor %}
+
+				<!-- Add new project card -->
+				<div class="col-12 col-sm-6 col-lg-4 col-xl-3 fade-in">
+					<button class="project-card w-100 h-100 border-dashed text-start"
+					        style="border: 2px dashed var(--tf-border); background: transparent; min-height: 160px;"
+					        hx-get="{% url 'project_create' %}"
+					        hx-target="#modalContent"
+					        hx-swap="innerHTML">
+						<div class="text-center text-muted py-4">
+							<i class="bi bi-plus-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+							<p class="mt-2 mb-0 fw-medium">Создать проект</p>
+						</div>
+					</button>
+				</div>
+			</div>
+		{% else %}
+			<div class="empty-state">
+				<i class="bi bi-folder2-open"></i>
+				<h3 class="h5 fw-semibold">Пока нет проектов</h3>
+				<p class="text-muted mb-4">Создайте первый проект, чтобы начать</p>
+				<button class="btn btn-tf-primary"
+				        hx-get="{% url 'project_create' %}"
+				        hx-target="#modalContent"
+				        hx-swap="innerHTML">
+					<i class="bi bi-plus-lg me-2"></i>Создать проект
+				</button>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}

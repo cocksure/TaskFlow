@@ -1,0 +1,132 @@
+<div class="modal-header">
+    <h5 class="modal-title fw-semibold">
+        <i class="bi bi-folder-plus me-2"></i>Новый проект
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form method="post" hx-post="{% url 'project_create' %}">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-4">
+            <label class="form-label">{{ form.name.label }}</label>
+            {{ form.name }}
+        </div>
+
+        <!-- Icon Picker -->
+        <div class="mb-4">
+            <label class="form-label">{{ form.icon.label }}</label>
+            <div class="icon-picker d-flex gap-2 flex-wrap">
+                {% for value, label in form.fields.icon.choices %}
+                    <label class="icon-option">
+                        <input type="radio" name="icon" value="{{ value }}"
+                               {% if form.icon.value == value or value == 'folder' and not form.icon.value %}checked{% endif %}>
+                        <span class="icon-swatch" title="{{ label }}">
+                            {% if value == 'folder' %}<i class="bi bi-folder-fill"></i>
+                            {% elif value == 'briefcase' %}<i class="bi bi-briefcase-fill"></i>
+                            {% elif value == 'rocket' %}<i class="bi bi-rocket-takeoff-fill"></i>
+                            {% elif value == 'star' %}<i class="bi bi-star-fill"></i>
+                            {% elif value == 'heart' %}<i class="bi bi-heart-fill"></i>
+                            {% elif value == 'lightning' %}<i class="bi bi-lightning-fill"></i>
+                            {% elif value == 'gear' %}<i class="bi bi-gear-fill"></i>
+                            {% elif value == 'code' %}<i class="bi bi-code-slash"></i>
+                            {% elif value == 'palette' %}<i class="bi bi-palette-fill"></i>
+                            {% elif value == 'music' %}<i class="bi bi-music-note-beamed"></i>
+                            {% elif value == 'camera' %}<i class="bi bi-camera-fill"></i>
+                            {% elif value == 'book' %}<i class="bi bi-book-fill"></i>
+                            {% endif %}
+                        </span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Color Picker -->
+        <div class="mb-3">
+            <label class="form-label">{{ form.color.label }}</label>
+            <div class="color-picker d-flex gap-2 flex-wrap">
+                {% for value, label in form.fields.color.choices %}
+                    <label class="color-option">
+                        <input type="radio" name="color" value="{{ value }}"
+                               {% if form.color.value == value or value == 'purple' and not form.color.value %}checked{% endif %}>
+                        <span class="project-color-swatch project-color-{{ value }}" title="{{ label }}"></span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-tf-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-tf-primary">
+            <i class="bi bi-plus-lg me-1"></i>Создать
+        </button>
+    </div>
+</form>
+
+<style>
+    .icon-picker, .color-picker {
+        padding: 8px 0;
+    }
+
+    .icon-option, .color-option {
+        cursor: pointer;
+    }
+
+    .icon-option input, .color-option input {
+        display: none;
+    }
+
+    .icon-swatch {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--tf-bg);
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+        font-size: 1.25rem;
+        color: var(--tf-muted);
+    }
+
+    .icon-option input:checked + .icon-swatch {
+        border-color: var(--tf-primary);
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--tf-primary);
+        transform: scale(1.1);
+    }
+
+    .icon-swatch:hover {
+        background: var(--tf-border);
+    }
+
+    .project-color-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: block;
+        border: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .color-option input:checked + .project-color-swatch {
+        border-color: var(--tf-text);
+        transform: scale(1.15);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .project-color-swatch:hover {
+        transform: scale(1.1);
+    }
+
+    .project-color-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .project-color-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .project-color-cyan { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .project-color-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .project-color-yellow { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .project-color-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .project-color-red { background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
+    .project-color-pink { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+</style>

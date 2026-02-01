@@ -1,0 +1,259 @@
+<div class="modal-header">
+    <h5 class="modal-title fw-semibold">
+        <i class="bi bi-chat-dots me-2"></i>Чат: {{ task.title|truncatewords:5 }}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body p-0">
+    <div class="chat-container" id="chatContainer" data-task-id="{{ task.id }}">
+        <!-- Сообщения будут загружены через WebSocket -->
+        <div id="chatMessages" class="chat-messages">
+            <div class="text-center text-muted py-4" id="chatLoading">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                Подключение к чату...
+            </div>
+        </div>
+
+        <!-- Форма отправки -->
+        <div class="chat-input-container">
+            <form id="chatForm" class="d-flex gap-2">
+                <input type="text"
+                       id="chatInput"
+                       class="form-control"
+                       placeholder="Введите сообщение..."
+                       autocomplete="off"
+                       maxlength="1000">
+                <button type="submit" class="btn btn-tf-primary">
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chat-message {
+    max-width: 80%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    word-wrap: break-word;
+}
+
+.chat-message.own {
+    align-self: flex-end;
+    background: var(--tf-primary);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.chat-message.other {
+    align-self: flex-start;
+    background: var(--tf-card);
+    border: 1px solid var(--tf-border);
+    border-bottom-left-radius: 0.25rem;
+}
+
+.chat-message .message-user {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    opacity: 0.8;
+}
+
+.chat-message.own .message-user {
+    display: none;
+}
+
+.chat-message .message-text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.chat-message .message-time {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-top: 0.25rem;
+    text-align: right;
+}
+
+.chat-input-container {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--tf-border);
+    background: var(--tf-bg);
+}
+
+.chat-empty {
+    text-align: center;
+    color: var(--tf-muted);
+    padding: 2rem;
+}
+
+.chat-empty i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 576px) {
+    .chat-container {
+        height: 350px;
+    }
+
+    .chat-messages {
+        padding: 0.75rem;
+    }
+
+    .chat-message {
+        max-width: 90%;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .chat-message .message-text {
+        font-size: 0.85rem;
+    }
+
+    .chat-input-container {
+        padding: 0.5rem 0.75rem;
+    }
+}
+</style>
+
+<script>
+(function() {
+    const taskId = {{ task.id }};
+    const currentUserId = {{ request.user.id }};
+    const messagesContainer = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatLoading = document.getElementById('chatLoading');
+
+    // Определяем протокол WebSocket (ws или wss)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/task/${taskId}/`;
+
+    let socket = null;
+
+    function connect() {
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = function(e) {
+            console.log('WebSocket подключен');
+        };
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'history') {
+                // Загрузка истории сообщений
+                renderMessages(data.messages);
+            } else if (data.type === 'message') {
+                // Новое сообщение
+                appendMessage(data.message);
+            }
+        };
+
+        socket.onclose = function(e) {
+            console.log('WebSocket отключен');
+            // Можно добавить переподключение
+        };
+
+        socket.onerror = function(e) {
+            console.error('WebSocket ошибка:', e);
+            chatLoading.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i> Ошибка подключения';
+        };
+    }
+
+    function renderMessages(messages) {
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = `
+                <div class="chat-empty">
+                    <i class="bi bi-chat-dots"></i>
+                    Сообщений пока нет.<br>
+                    Начните обсуждение!
+                </div>
+            `;
+        } else {
+            messagesContainer.innerHTML = '';
+            messages.forEach(msg => appendMessage(msg));
+        }
+    }
+
+    function appendMessage(msg) {
+        // Удаляем заглушку "нет сообщений" если есть
+        const emptyMsg = messagesContainer.querySelector('.chat-empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        const chatLoading = document.getElementById('chatLoading');
+        if (chatLoading) chatLoading.remove();
+
+        const isOwn = msg.user_id === currentUserId;
+        const div = document.createElement('div');
+        div.className = `chat-message ${isOwn ? 'own' : 'other'}`;
+        div.innerHTML = `
+            <div class="message-user">${escapeHtml(msg.user)}</div>
+            <div class="message-text">${escapeHtml(msg.text)}</div>
+            <div class="message-time">${msg.created_at}</div>
+        `;
+
+        messagesContainer.appendChild(div);
+
+        // Прокручиваем вниз
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Отправка сообщения
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const text = chatInput.value.trim();
+        if (!text || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+        socket.send(JSON.stringify({
+            message: text
+        }));
+
+        chatInput.value = '';
+        chatInput.focus();
+    });
+
+    // Закрытие WebSocket при закрытии модалки
+    const modal = document.getElementById('taskModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        });
+    }
+
+    // Подключаемся
+    connect();
+
+    // Фокус на поле ввода
+    chatInput.focus();
+})();
+</script>

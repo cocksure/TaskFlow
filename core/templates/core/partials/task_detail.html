@@ -1,0 +1,98 @@
+<div class="modal-header">
+    <h5 class="modal-title fw-semibold">
+        <i class="bi bi-card-text me-2"></i>{{ task.title }}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+    <!-- Status & Priority -->
+    <div class="d-flex gap-2 mb-3">
+        <span class="badge bg-secondary">{{ task.get_status_display }}</span>
+        <span class="priority-badge priority-{{ task.priority }}">{{ task.get_priority_display }}</span>
+    </div>
+
+    <!-- Description -->
+    {% if task.description %}
+    <div class="mb-4">
+        <h6 class="text-muted small mb-2"><i class="bi bi-text-left me-1"></i>Описание</h6>
+        <p class="mb-0">{{ task.description }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Due Date -->
+    {% if task.due_date %}
+    <div class="mb-4">
+        <h6 class="text-muted small mb-2"><i class="bi bi-calendar me-1"></i>Срок</h6>
+        <span class="{% if task.is_overdue %}text-danger{% endif %}">
+            {{ task.due_date|date:"d F Y" }}
+            {% if task.is_overdue %}<i class="bi bi-exclamation-circle ms-1"></i> Просрочено{% endif %}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Labels -->
+    {% if task.labels.exists %}
+    <div class="mb-4">
+        <h6 class="text-muted small mb-2"><i class="bi bi-tag me-1"></i>Метки</h6>
+        <div class="d-flex gap-2 flex-wrap">
+            {% for label in task.labels.all %}
+                <span class="task-label label-{{ label.color }}">{{ label.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Checklist -->
+    <div class="checklist-section">
+        <h6 class="text-muted small mb-3">
+            <i class="bi bi-check2-square me-1"></i>Чеклист
+            {% if task.total_checklist_count > 0 %}
+                <span class="ms-2">({{ task.completed_checklist_count }}/{{ task.total_checklist_count }})</span>
+            {% endif %}
+        </h6>
+
+        <!-- Progress bar -->
+        {% if task.total_checklist_count > 0 %}
+        <div class="progress mb-3" style="height: 8px;">
+            <div class="progress-bar bg-success"
+                 style="width: {% widthratio task.completed_checklist_count task.total_checklist_count 100 %}%"></div>
+        </div>
+        {% endif %}
+
+        <!-- Checklist items -->
+        <div id="checklist-items">
+            {% for item in checklist_items %}
+                {% include "core/partials/checklist_item.html" %}
+            {% endfor %}
+        </div>
+
+        <!-- Add new item -->
+        <form hx-post="{% url 'checklist_add' task.id %}"
+              hx-target="#checklist-items"
+              hx-swap="beforeend"
+              hx-on::after-request="this.reset()">
+            {% csrf_token %}
+            <div class="input-group mt-3">
+                <input type="text"
+                       name="text"
+                       class="form-control"
+                       placeholder="Добавить пункт..."
+                       required>
+                <button type="submit" class="btn btn-tf-primary">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-footer">
+    <button type="button" class="btn btn-tf-secondary" data-bs-dismiss="modal">Закрыть</button>
+    <button class="btn btn-tf-primary"
+            hx-get="{% url 'task_edit' task.id %}"
+            hx-target="#modalContent"
+            hx-swap="innerHTML">
+        <i class="bi bi-pencil me-1"></i>Редактировать
+    </button>
+</div>

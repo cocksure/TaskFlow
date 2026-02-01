@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ project.name }} - TaskFlow{% endblock %}
+
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+	<!-- Board Toolbar -->
+	<div class="board-toolbar">
+		<!-- Top Row: Project Info & Actions -->
+		<div class="toolbar-top">
+			<div class="toolbar-left">
+				<a href="{% url 'home' %}" class="board-back" title="Назад к проектам">
+					<i class="bi bi-arrow-left"></i>
+				</a>
+				<div class="board-project-info">
+					<div class="board-project-icon project-icon-{{ project.color }}">
+						{% if project.icon == 'folder' %}<i class="bi bi-folder-fill"></i>
+						{% elif project.icon == 'briefcase' %}<i class="bi bi-briefcase-fill"></i>
+						{% elif project.icon == 'rocket' %}<i class="bi bi-rocket-takeoff-fill"></i>
+						{% elif project.icon == 'star' %}<i class="bi bi-star-fill"></i>
+						{% elif project.icon == 'heart' %}<i class="bi bi-heart-fill"></i>
+						{% elif project.icon == 'lightning' %}<i class="bi bi-lightning-fill"></i>
+						{% elif project.icon == 'gear' %}<i class="bi bi-gear-fill"></i>
+						{% elif project.icon == 'code' %}<i class="bi bi-code-slash"></i>
+						{% elif project.icon == 'palette' %}<i class="bi bi-palette-fill"></i>
+						{% elif project.icon == 'music' %}<i class="bi bi-music-note-beamed"></i>
+						{% elif project.icon == 'camera' %}<i class="bi bi-camera-fill"></i>
+						{% elif project.icon == 'book' %}<i class="bi bi-book-fill"></i>
+						{% else %}<i class="bi bi-folder-fill"></i>{% endif %}
+					</div>
+					<div>
+						<span class="board-project-name">{{ project.name }}</span>
+						<span class="board-project-count">{{ project.tasks.count }} задач</span>
+					</div>
+				</div>
+			</div>
+			<div class="toolbar-right">
+				<button class="filter-toggle filter-input {% if my_tasks %}active{% endif %}"
+				        id="myTasksFilter"
+				        name="my"
+				        value="{% if my_tasks %}{% else %}1{% endif %}"
+				        hx-get="{% url 'project_board' project.slug %}?my={% if my_tasks %}{% else %}1{% endif %}"
+				        hx-trigger="click"
+				        hx-target="#board-columns"
+				        hx-swap="innerHTML"
+				        hx-include=".filter-input"
+				        title="Только мои задачи">
+					<i class="bi bi-person{% if my_tasks %}-fill{% endif %}"></i>
+					<span>Мои</span>
+				</button>
+
+				<!-- Add Column Button -->
+				<button class="toolbar-btn"
+				        hx-get="{% url 'column_create' project.slug %}"
+				        hx-target="#modalContent"
+				        hx-swap="innerHTML"
+				        title="Добавить колонку">
+					<i class="bi bi-plus-lg"></i>
+					<span>Колонка</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- Bottom Row: Filters (scrollable on mobile) -->
+		<div class="toolbar-filters">
+			<!-- Search -->
+			<div class="filter-group search-group">
+				<i class="bi bi-search filter-icon"></i>
+				<input type="text"
+				       class="filter-control filter-input"
+				       placeholder="Поиск..."
+				       id="searchInput"
+				       value="{{ search }}"
+				       hx-get="{% url 'project_board' project.slug %}"
+				       hx-trigger="keyup changed delay:300ms"
+				       hx-target="#board-columns"
+				       hx-swap="innerHTML"
+				       hx-include=".filter-input"
+				       name="search">
+			</div>
+
+			<!-- Priority Filter -->
+			<div class="filter-group">
+				<i class="bi bi-flag filter-icon"></i>
+				<select class="filter-control filter-input"
+				        id="priorityFilter"
+				        name="priority"
+				        hx-get="{% url 'project_board' project.slug %}"
+				        hx-trigger="change"
+				        hx-target="#board-columns"
+				        hx-swap="innerHTML"
+				        hx-include=".filter-input">
+					<option value="">Приоритет</option>
+					{% for value, label in priorities %}
+						<option value="{{ value }}"
+						        {% if priority_filter == value %}selected{% endif %}>{{ label }}</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<!-- Label Filter -->
+			<div class="filter-group">
+				<i class="bi bi-tag filter-icon"></i>
+				<select class="filter-control filter-input"
+				        id="labelFilter"
+				        name="label"
+				        hx-get="{% url 'project_board' project.slug %}"
+				        hx-trigger="change"
+				        hx-target="#board-columns"
+				        hx-swap="innerHTML"
+				        hx-include=".filter-input">
+					<option value="">Метка</option>
+					{% for label in labels %}
+						<option value="{{ label.id }}"
+						        {% if label_filter == label.id|stringformat:"i" %}selected{% endif %}>{{ label.name }}</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<!-- Due Date Filter -->
+			<div class="filter-group">
+				<i class="bi bi-calendar-event filter-icon"></i>
+				<select class="filter-control filter-input"
+				        id="dueFilter"
+				        name="due"
+				        hx-get="{% url 'project_board' project.slug %}"
+				        hx-trigger="change"
+				        hx-target="#board-columns"
+				        hx-swap="innerHTML"
+				        hx-include=".filter-input">
+					<option value="">Срок</option>
+					<option value="overdue" {% if due_filter == "overdue" %}selected{% endif %}>Просроченные</option>
+					<option value="today" {% if due_filter == "today" %}selected{% endif %}>Сегодня</option>
+					<option value="week" {% if due_filter == "week" %}selected{% endif %}>Эта неделя</option>
+					<option value="none" {% if due_filter == "none" %}selected{% endif %}>Без срока</option>
+				</select>
+			</div>
+		</div>
+	</div>
+
+	<!-- Kanban Board -->
+	<div class="board-wrapper">
+		<div class="board-container" id="board-columns"
+		     hx-trigger="taskChanged from:body, columnChanged from:body"
+		     hx-get="{% url 'project_board' project.slug %}"
+		     hx-swap="innerHTML">
+			{% include "core/partials/board_columns.html" %}
+		</div>
+	</div>
+
+	<link rel="stylesheet" href="{% static 'css/board.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+	<script src="{% static 'js/board.js' %}" defer></script>
+{% endblock %}

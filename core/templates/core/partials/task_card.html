@@ -1,0 +1,92 @@
+<div class="task-card priority-{{ task.priority }}" data-task-id="{{ task.id }}">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="task-title flex-grow-1"
+             hx-get="{% url 'task_detail' task.id %}"
+             hx-target="#modalContent"
+             hx-swap="innerHTML"
+             style="cursor: pointer;">
+            {{ task.title }}
+        </div>
+        <div class="task-actions d-flex gap-1 flex-shrink-0">
+            <button class="task-action-btn"
+                    hx-get="{% url 'task_chat' task.id %}"
+                    hx-target="#modalContent"
+                    hx-swap="innerHTML"
+                    title="Чат">
+                <i class="bi bi-chat-dots"></i>
+                {% if task.messages.count > 0 %}
+                <span class="chat-badge">{{ task.messages.count }}</span>
+                {% endif %}
+            </button>
+            <button class="task-action-btn"
+                    hx-get="{% url 'task_edit' task.id %}"
+                    hx-target="#modalContent"
+                    hx-swap="innerHTML"
+                    title="Редактировать">
+                <i class="bi bi-pencil"></i>
+            </button>
+            {% if task.created_by == request.user %}
+            <button class="task-action-btn delete"
+                    onclick="confirmDelete({{ task.id }}, '{{ task.title|escapejs }}')"
+                    title="Удалить">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if task.description %}
+        <div class="task-desc mt-2">{{ task.description|truncatewords:15 }}</div>
+    {% endif %}
+
+    <!-- Labels -->
+    {% if task.labels.exists %}
+    <div class="task-labels mt-2">
+        {% for label in task.labels.all %}
+            <span class="task-label label-{{ label.color }}">{{ label.name }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Checklist progress -->
+    {% if task.total_checklist_count > 0 %}
+    <div class="checklist-progress mt-2">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-check2-square text-muted"></i>
+            <div class="progress flex-grow-1" style="height: 6px;">
+                <div class="progress-bar bg-success"
+                     style="width: {% widthratio task.completed_checklist_count task.total_checklist_count 100 %}%"></div>
+            </div>
+            <small class="text-muted">{{ task.completed_checklist_count }}/{{ task.total_checklist_count }}</small>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+        <!-- Priority Badge -->
+        <span class="priority-badge priority-{{ task.priority }}">
+            {% if task.priority == 'urgent' %}
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            {% elif task.priority == 'high' %}
+                <i class="bi bi-arrow-up me-1"></i>
+            {% elif task.priority == 'medium' %}
+                <i class="bi bi-dash me-1"></i>
+            {% else %}
+                <i class="bi bi-arrow-down me-1"></i>
+            {% endif %}
+            {{ task.get_priority_display }}
+        </span>
+
+        <!-- Due Date -->
+        {% if task.due_date %}
+            <span class="due-date {% if task.is_overdue %}overdue{% endif %}">
+                <i class="bi bi-calendar-event me-1"></i>
+                {{ task.due_date|date:"d M" }}
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="task-meta">
+        <span><i class="bi bi-person me-1"></i>{{ task.created_by.username }}</span>
+    </div>
+</div>

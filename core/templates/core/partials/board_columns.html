@@ -1,0 +1,69 @@
+{% for column in columns %}
+{% with filtered_tasks=column.filtered_tasks %}
+<div class="board-column">
+    <div class="column-header">
+        <span class="status-dot" style="background: {{ column.color }};"></span>
+        <h3>{{ column.name }}</h3>
+        <span class="column-count">{{ filtered_tasks|length }}</span>
+        <div class="column-actions ms-auto d-flex gap-1">
+            <button class="column-action-btn"
+                    hx-get="{% url 'column_edit' column.id %}"
+                    hx-target="#modalContent"
+                    hx-swap="innerHTML"
+                    title="Редактировать">
+                <i class="bi bi-pencil"></i>
+            </button>
+            {% if columns|length > 1 %}
+            <button class="column-action-btn delete"
+                    hx-post="{% url 'column_delete' column.id %}"
+                    hx-confirm="Удалить колонку '{{ column.name }}'? Задачи будут перемещены."
+                    title="Удалить">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="column-body" data-column-id="{{ column.id }}">
+        <div class="tasks-container" data-column-id="{{ column.id }}">
+            {% for task in filtered_tasks %}
+                {% include "core/partials/task_card.html" %}
+            {% endfor %}
+        </div>
+        <div class="empty-column text-center text-muted py-4" {% if filtered_tasks %}style="display: none;"{% endif %}>
+            <i class="bi bi-inbox" style="font-size: 1.5rem; opacity: 0.3;"></i>
+            <p class="small mt-2 mb-0">Нет задач</p>
+        </div>
+        <button class="add-task-btn mt-auto"
+                hx-get="{% url 'task_create' project.slug %}?column={{ column.id }}"
+                hx-target="#modalContent"
+                hx-swap="innerHTML">
+            <i class="bi bi-plus me-1"></i>Добавить задачу
+        </button>
+    </div>
+</div>
+{% endwith %}
+{% empty %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-columns-gap" style="font-size: 3rem; opacity: 0.3;"></i>
+    <p class="mt-3">Создайте первую колонку</p>
+    <button class="btn btn-tf-primary"
+            hx-get="{% url 'column_create' project.slug %}"
+            hx-target="#modalContent"
+            hx-swap="innerHTML">
+        <i class="bi bi-plus-lg me-1"></i>Добавить колонку
+    </button>
+</div>
+{% endfor %}
+
+<!-- Add Column Card -->
+{% if columns %}
+<div class="add-column-card"
+     hx-get="{% url 'column_create' project.slug %}"
+     hx-target="#modalContent"
+     hx-swap="innerHTML">
+    <div class="text-center text-muted">
+        <i class="bi bi-plus-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+        <p class="small mt-2 mb-0">Добавить колонку</p>
+    </div>
+</div>
+{% endif %}

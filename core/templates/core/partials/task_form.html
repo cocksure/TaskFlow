@@ -1,0 +1,55 @@
+<div class="modal-header">
+    <h5 class="modal-title fw-semibold">
+        {% if task %}
+            <i class="bi bi-pencil-square me-2"></i>Редактировать задачу
+        {% else %}
+            <i class="bi bi-plus-circle me-2"></i>Новая задача
+        {% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form method="post"
+      hx-post="{% if task %}{% url 'task_edit' task.id %}{% else %}{% url 'task_create' project.slug %}{% endif %}"
+      hx-swap="none">
+
+    {% csrf_token %}
+    {% if column %}
+    <input type="hidden" name="column" value="{{ column.id }}">
+    {% endif %}
+
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">{{ form.title.label }}</label>
+            {{ form.title }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.description.label }}</label>
+            {{ form.description }}
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ form.priority.label }}</label>
+                {{ form.priority }}
+                <small class="text-muted d-block mt-1">Цвет карточки зависит от приоритета</small>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">{{ form.due_date.label }}</label>
+                {{ form.due_date }}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-tf-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-tf-primary">
+            {% if task %}
+                <i class="bi bi-check-lg me-1"></i>Сохранить
+            {% else %}
+                <i class="bi bi-plus-lg me-1"></i>Создать
+            {% endif %}
+        </button>
+    </div>
+</form>

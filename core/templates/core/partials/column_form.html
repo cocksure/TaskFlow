@@ -1,0 +1,80 @@
+<div class="modal-header">
+    <h5 class="modal-title fw-semibold">
+        {% if column %}
+            <i class="bi bi-pencil-square me-2"></i>Редактировать колонку
+        {% else %}
+            <i class="bi bi-columns-gap me-2"></i>Новая колонка
+        {% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form method="post"
+      hx-post="{% if column %}{% url 'column_edit' column.id %}{% else %}{% url 'column_create' project.slug %}{% endif %}"
+      hx-swap="none">
+
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-4">
+            <label class="form-label">{{ form.name.label }}</label>
+            {{ form.name }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.color.label }}</label>
+            <div class="column-color-picker d-flex gap-2 flex-wrap">
+                {% for value, label in form.fields.color.choices %}
+                    <label class="color-option">
+                        <input type="radio" name="color" value="{{ value }}"
+                               {% if form.color.value == value or value == '#64748b' and not form.color.value %}checked{% endif %}>
+                        <span class="column-color-swatch" style="background: {{ value }};" title="{{ label }}"></span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-tf-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-tf-primary">
+            {% if column %}
+                <i class="bi bi-check-lg me-1"></i>Сохранить
+            {% else %}
+                <i class="bi bi-plus-lg me-1"></i>Создать
+            {% endif %}
+        </button>
+    </div>
+</form>
+
+<style>
+    .column-color-picker {
+        padding: 8px 0;
+    }
+
+    .color-option {
+        cursor: pointer;
+    }
+
+    .color-option input {
+        display: none;
+    }
+
+    .column-color-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: block;
+        border: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .color-option input:checked + .column-color-swatch {
+        border-color: var(--tf-text);
+        transform: scale(1.15);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .column-color-swatch:hover {
+        transform: scale(1.1);
+    }
+</style>
